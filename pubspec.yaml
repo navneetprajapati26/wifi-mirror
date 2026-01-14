@@ -1,0 +1,52 @@
+name: wifi_mirror
+description: "Cross-platform screen sharing app for local WiFi networks"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI & Icons
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.5.2
+  
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  
+  # Network Service Discovery
+  bonsoir: ^6.0.0
+  
+  # WebRTC for screen streaming
+  flutter_webrtc: ^0.12.8
+  
+  # Utilities
+  uuid: ^4.5.1
+  shared_preferences: ^2.3.5
+  permission_handler: ^11.3.1
+  encrypt: ^5.0.3
+  crypto: ^3.0.6
+  connectivity_plus: ^6.1.4
+  device_info_plus: ^11.4.0
+  
+  # Platform-specific utilities
+  path_provider: ^2.1.5
+  wakelock_plus: ^1.2.10
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+  riverpod_generator: ^2.6.3
+  build_runner: ^2.4.15
+
+flutter:
+  uses-material-design: true
+
