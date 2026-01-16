@@ -7,12 +7,18 @@ import '../../core/utils/logger.dart';
 import 'signaling_service.dart';
 
 /// Service for handling WebRTC connections for screen sharing
+/// Supports multiple simultaneous viewers
 class WebRTCService {
   static const String _module = 'WebRTC';
 
   final SignalingService _signalingService;
 
-  RTCPeerConnection? _peerConnection;
+  // For host: Map of viewer ID to their peer connection
+  final Map<String, RTCPeerConnection> _viewerConnections = {};
+
+  // For viewer: Single connection to host
+  RTCPeerConnection? _hostConnection;
+
   MediaStream? _localStream;
   MediaStream? _remoteStream;
 
@@ -25,8 +31,11 @@ class WebRTCService {
   final StreamController<StreamingMetrics> _metricsController =
       StreamController<StreamingMetrics>.broadcast();
 
+  final StreamController<int> _viewerCountController =
+      StreamController<int>.broadcast();
+
   String? _localDeviceId;
-  String? _remoteDeviceId;
+  String? _remoteDeviceId; // Only used when we are a viewer
   StreamingQuality _quality = StreamingQuality.medium;
   bool _isHost = false;
   Timer? _metricsTimer;
@@ -38,6 +47,9 @@ class WebRTCService {
   /// Stream of streaming metrics
   Stream<StreamingMetrics> get metricsStream => _metricsController.stream;
 
+  /// Stream of viewer count changes (for host)
+  Stream<int> get viewerCountStream => _viewerCountController.stream;
+
   /// Current connection state
   WebRTCConnectionState _connectionState = WebRTCConnectionState.disconnected;
   WebRTCConnectionState get connectionState => _connectionState;
@@ -48,25 +60,14 @@ class WebRTCService {
   /// Current streaming quality
   StreamingQuality get quality => _quality;
 
+  /// Number of connected viewers (for host)
+  int get viewerCount => _viewerConnections.length;
+
   WebRTCService(this._signalingService);
 
-  /// Whether to force relay mode (for mobile hotspots with AP isolation)
-  bool _forceRelayMode = false;
-
-  /// Set force relay mode (must be called before createPeerConnection)
-  void setForceRelayMode(bool forceRelay) {
-    _forceRelayMode = forceRelay;
-    AppLogger.info(
-      'Force relay mode: ${forceRelay ? 'enabled' : 'disabled'}',
-      _module,
-    );
-  }
-
-  /// Get WebRTC configuration with STUN and TURN servers
-  /// TURN servers are essential for mobile hotspots which have AP isolation enabled
+  /// Get WebRTC configuration with STUN servers
+  /// Note: TURN servers removed as free ones are unreliable
   Map<String, dynamic> get _configuration {
-    AppLogger.info('Creating ICE config: forceRelay=$_forceRelayMode', _module);
-
     return {
       'iceServers': <Map<String, dynamic>>[
         // Google STUN servers (free, reliable)
@@ -78,34 +79,15 @@ class WebRTCService {
 
         // Twilio STUN (generally reliable)
         {'urls': 'stun:global.stun.twilio.com:3478'},
-
-        // Metered.ca TURN servers (free tier - more reliable)
-        // These allow relay of media when direct P2P is blocked
-        {
-          'urls': [
-            'turn:a.relay.metered.ca:80',
-            'turn:a.relay.metered.ca:80?transport=tcp',
-            'turn:a.relay.metered.ca:443',
-            'turn:a.relay.metered.ca:443?transport=tcp',
-          ],
-          'username': 'e8dd65c92e326d5e0dff6a9d',
-          'credential': 'YhNjCYdUoYCiUWbd',
-        },
       ],
       'sdpSemantics': 'unified-plan',
-      // 'relay' forces TURN-only connections (slower but works with AP isolation)
-      // 'all' allows both direct and relay connections (preferred when possible)
-      'iceTransportPolicy': _forceRelayMode ? 'relay' : 'all',
+      'iceTransportPolicy': 'all',
     };
   }
 
   /// Initialize the WebRTC service
-  Future<void> initialize(
-    String deviceId, {
-    bool forceRelayMode = false,
-  }) async {
+  Future<void> initialize(String deviceId) async {
     _localDeviceId = deviceId;
-    _forceRelayMode = forceRelayMode;
 
     await localRenderer.initialize();
     await remoteRenderer.initialize();
@@ -113,39 +95,25 @@ class WebRTCService {
     // Listen for signaling messages
     _signalingService.messageStream.listen(_handleSignalingMessage);
 
-    AppLogger.info(
-      'WebRTC service initialized (forceRelay: $forceRelayMode)',
-      _module,
-    );
+    AppLogger.info('WebRTC service initialized', _module);
   }
 
-  /// Start sharing screen (as host)
+  /// Start sharing screen (as host) - supports multiple viewers
   Future<void> startScreenShare() async {
     _isHost = true;
     _updateConnectionState(WebRTCConnectionState.connecting);
 
     try {
-      // Create peer connection
-      await _createPeerConnection();
-
       // Start screen capture
       _localStream = await _getScreenStream();
 
       if (_localStream != null) {
         localRenderer.srcObject = _localStream;
 
-        // Add tracks to peer connection and set quality
-        for (final track in _localStream!.getTracks()) {
-          final sender = await _peerConnection?.addTrack(track, _localStream!);
-          if (sender != null && track.kind == 'video') {
-            await _setVideoQuality(sender);
-          }
-        }
-
         _updateConnectionState(WebRTCConnectionState.ready);
         _startMetricsCollection();
 
-        AppLogger.info('Screen sharing started', _module);
+        AppLogger.info('Screen sharing started - waiting for viewers', _module);
       } else {
         throw Exception('Failed to get screen stream');
       }
@@ -159,28 +127,16 @@ class WebRTCService {
   /// Get screen capture stream
   Future<MediaStream?> _getScreenStream() async {
     try {
-      // On Android 14+, we MUST request media projection permission BEFORE
-      // starting the foreground service with mediaProjection type.
-      // The native side handles requesting permission and starting the service.
       if (Platform.isAndroid) {
         try {
           const channel = MethodChannel('com.wifimirror/service');
           await channel.invokeMethod('startForegroundService');
           AppLogger.info('Started Android foreground service', _module);
         } on PlatformException catch (e) {
-          // Handle permission denial from user
           if (e.code == 'PERMISSION_DENIED') {
             AppLogger.warning('User denied screen capture permission', _module);
-            rethrow; // Propagate so the UI can show appropriate message
+            rethrow;
           }
-          AppLogger.error(
-            'Failed to start foreground service',
-            e,
-            null,
-            _module,
-          );
-          rethrow;
-        } catch (e) {
           AppLogger.error(
             'Failed to start foreground service',
             e,
@@ -191,7 +147,6 @@ class WebRTCService {
         }
       }
 
-      // Use display media for screen capture
       final stream = await navigator.mediaDevices.getDisplayMedia({
         'video': {
           'width': {'ideal': _quality.width},
@@ -206,7 +161,6 @@ class WebRTCService {
     } catch (e) {
       AppLogger.error('Failed to get screen stream', e, null, _module);
 
-      // If we failed, try to stop the service we might have started
       if (Platform.isAndroid) {
         try {
           const channel = MethodChannel('com.wifimirror/service');
@@ -240,7 +194,7 @@ class WebRTCService {
     _updateConnectionState(WebRTCConnectionState.connecting);
 
     try {
-      await _createPeerConnection();
+      _hostConnection = await _createPeerConnectionAsViewer();
       AppLogger.info('Connecting to host: $hostDeviceId', _module);
     } catch (e, stack) {
       AppLogger.error('Failed to connect to host', e, stack, _module);
@@ -249,47 +203,126 @@ class WebRTCService {
     }
   }
 
-  /// Create WebRTC peer connection
-  Future<void> _createPeerConnection() async {
-    _peerConnection = await createPeerConnection(_configuration);
+  /// Create peer connection for a viewer (host side) - for multi-viewer support
+  Future<RTCPeerConnection> _createPeerConnectionForViewer(
+    String viewerId,
+  ) async {
+    final pc = await createPeerConnection(_configuration);
 
-    // Set up event handlers
-    _peerConnection!.onIceCandidate = _handleIceCandidate;
-    _peerConnection!.onIceConnectionState = _handleIceConnectionState;
-    _peerConnection!.onConnectionState = _handleConnectionState;
-    _peerConnection!.onTrack = _handleTrack;
-    _peerConnection!.onRenegotiationNeeded = _handleRenegotiationNeeded;
+    // Set up event handlers for this viewer's connection
+    pc.onIceCandidate = (candidate) =>
+        _handleIceCandidateForViewer(viewerId, candidate);
+    pc.onIceConnectionState = (state) =>
+        _handleIceConnectionStateForViewer(viewerId, state);
+    pc.onConnectionState = (state) =>
+        _handleConnectionStateForViewer(viewerId, state);
 
-    // ICE gathering state handler
-    _peerConnection!.onIceGatheringState = (RTCIceGatheringState state) {
-      AppLogger.info('ICE gathering state: $state', _module);
-      if (state == RTCIceGatheringState.RTCIceGatheringStateComplete) {
-        AppLogger.info('ICE gathering complete!', _module);
-      }
+    pc.onIceGatheringState = (RTCIceGatheringState state) {
+      AppLogger.info('ICE gathering state for $viewerId: $state', _module);
     };
 
-    AppLogger.info('Peer connection created with all handlers', _module);
-  }
-
-  /// Handle ICE candidate
-  void _handleIceCandidate(RTCIceCandidate candidate) {
-    // Parse candidate type for logging
-    final candidateStr = candidate.candidate ?? '';
-    String candidateType = 'unknown';
-    if (candidateStr.contains('typ host')) {
-      candidateType = 'host';
-    } else if (candidateStr.contains('typ srflx')) {
-      candidateType = 'srflx (STUN)';
-    } else if (candidateStr.contains('typ relay')) {
-      candidateType = 'relay (TURN)';
-    } else if (candidateStr.contains('typ prflx')) {
-      candidateType = 'prflx';
+    // Add local stream tracks to this connection
+    if (_localStream != null) {
+      for (final track in _localStream!.getTracks()) {
+        final sender = await pc.addTrack(track, _localStream!);
+        if (track.kind == 'video') {
+          await _setVideoQualityOnSender(sender);
+        }
+      }
     }
 
-    AppLogger.info('ICE candidate generated: type=$candidateType', _module);
+    AppLogger.info('Created peer connection for viewer: $viewerId', _module);
+    return pc;
+  }
+
+  /// Create peer connection when WE are the viewer (connecting to a host)
+  Future<RTCPeerConnection> _createPeerConnectionAsViewer() async {
+    final pc = await createPeerConnection(_configuration);
+
+    pc.onIceCandidate = _handleIceCandidateAsViewer;
+    pc.onIceConnectionState = _handleIceConnectionStateAsViewer;
+    pc.onConnectionState = _handleConnectionStateAsViewer;
+    pc.onTrack = _handleTrack;
+
+    pc.onIceGatheringState = (RTCIceGatheringState state) {
+      AppLogger.info('ICE gathering state: $state', _module);
+    };
+
+    AppLogger.info('Created peer connection as viewer', _module);
+    return pc;
+  }
+
+  // ==================== HOST SIDE HANDLERS ====================
+
+  /// Handle ICE candidate for a specific viewer (host side)
+  void _handleIceCandidateForViewer(
+    String viewerId,
+    RTCIceCandidate candidate,
+  ) {
+    final candidateType = _parseCandidateType(candidate.candidate ?? '');
+    AppLogger.info('ICE candidate for $viewerId: type=$candidateType', _module);
+
+    _signalingService.sendMessage(
+      SignalingMessage.iceCandidate(
+        senderId: _localDeviceId!,
+        targetId: viewerId,
+        candidate: candidate.toMap(),
+      ),
+    );
+  }
+
+  /// Handle ICE connection state for a specific viewer (host side)
+  void _handleIceConnectionStateForViewer(
+    String viewerId,
+    RTCIceConnectionState state,
+  ) {
+    AppLogger.info('ICE state for viewer $viewerId: $state', _module);
+
+    if (state == RTCIceConnectionState.RTCIceConnectionStateConnected ||
+        state == RTCIceConnectionState.RTCIceConnectionStateCompleted) {
+      AppLogger.info('Viewer $viewerId connected!', _module);
+      _updateConnectionState(WebRTCConnectionState.connected);
+    } else if (state == RTCIceConnectionState.RTCIceConnectionStateFailed ||
+        state == RTCIceConnectionState.RTCIceConnectionStateClosed) {
+      AppLogger.warning('Viewer $viewerId disconnected', _module);
+      _removeViewer(viewerId);
+    }
+  }
+
+  /// Handle connection state for a specific viewer (host side)
+  void _handleConnectionStateForViewer(
+    String viewerId,
+    RTCPeerConnectionState state,
+  ) {
+    AppLogger.info('Connection state for viewer $viewerId: $state', _module);
+
+    if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed ||
+        state == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
+      _removeViewer(viewerId);
+    }
+  }
+
+  /// Remove a viewer connection
+  Future<void> _removeViewer(String viewerId) async {
+    final pc = _viewerConnections.remove(viewerId);
+    if (pc != null) {
+      await pc.close();
+      AppLogger.info(
+        'Removed viewer: $viewerId (${_viewerConnections.length} remaining)',
+        _module,
+      );
+      _notifyViewerCountChanged();
+    }
+  }
+
+  // ==================== VIEWER SIDE HANDLERS ====================
+
+  /// Handle ICE candidate when we are the viewer
+  void _handleIceCandidateAsViewer(RTCIceCandidate candidate) {
+    final candidateType = _parseCandidateType(candidate.candidate ?? '');
+    AppLogger.info('ICE candidate: type=$candidateType', _module);
 
     if (_remoteDeviceId != null) {
-      AppLogger.info('Sending ICE candidate to: $_remoteDeviceId', _module);
       _signalingService.sendMessage(
         SignalingMessage.iceCandidate(
           senderId: _localDeviceId!,
@@ -297,79 +330,38 @@ class WebRTCService {
           candidate: candidate.toMap(),
         ),
       );
-    } else if (_isHost) {
-      // Broadcast to all viewers
-      AppLogger.info('Broadcasting ICE candidate (host mode)', _module);
-      _signalingService.sendMessage(
-        SignalingMessage(
-          type: SignalingType.iceCandidate,
-          senderId: _localDeviceId!,
-          payload: candidate.toMap(),
-        ),
-      );
-    } else {
-      AppLogger.warning(
-        'ICE candidate generated but no remote device ID set!',
-        _module,
-      );
     }
   }
 
-  /// Handle ICE connection state changes
-  void _handleIceConnectionState(RTCIceConnectionState state) {
-    AppLogger.info('ICE connection state changed: $state', _module);
+  /// Handle ICE connection state when we are the viewer
+  void _handleIceConnectionStateAsViewer(RTCIceConnectionState state) {
+    AppLogger.info('ICE connection state: $state', _module);
 
     switch (state) {
-      case RTCIceConnectionState.RTCIceConnectionStateNew:
-        AppLogger.debug('ICE: New - Starting ICE negotiation', _module);
-        break;
-      case RTCIceConnectionState.RTCIceConnectionStateChecking:
-        AppLogger.debug('ICE: Checking - Validating candidates...', _module);
-        break;
       case RTCIceConnectionState.RTCIceConnectionStateConnected:
-        AppLogger.info(
-          'ICE: Connected! Peer-to-peer link established',
-          _module,
-        );
-        _updateConnectionState(WebRTCConnectionState.connected);
-        break;
       case RTCIceConnectionState.RTCIceConnectionStateCompleted:
-        AppLogger.info('ICE: Completed - All candidates processed', _module);
+        AppLogger.info('Connected to host!', _module);
         _updateConnectionState(WebRTCConnectionState.connected);
         break;
       case RTCIceConnectionState.RTCIceConnectionStateDisconnected:
-        AppLogger.warning(
-          'ICE: Disconnected - Connection lost, may reconnect',
-          _module,
-        );
         _updateConnectionState(WebRTCConnectionState.reconnecting);
         break;
       case RTCIceConnectionState.RTCIceConnectionStateFailed:
-        AppLogger.error(
-          'ICE: FAILED - Could not establish connection. '
-          'This often happens with mobile hotspots due to AP isolation. '
-          'Try enabling "Force Relay Mode" in Settings.',
-          null,
-          null,
-          _module,
-        );
+        AppLogger.error('ICE connection failed', null, null, _module);
         _updateConnectionState(WebRTCConnectionState.error);
         break;
       case RTCIceConnectionState.RTCIceConnectionStateClosed:
-        AppLogger.info('ICE: Closed - Connection terminated', _module);
         _updateConnectionState(WebRTCConnectionState.disconnected);
         break;
       default:
-        AppLogger.debug('ICE: Unknown state - $state', _module);
         break;
     }
   }
 
-  /// Handle peer connection state changes
-  void _handleConnectionState(RTCPeerConnectionState state) {
+  /// Handle connection state when we are the viewer
+  void _handleConnectionStateAsViewer(RTCPeerConnectionState state) {
     AppLogger.info('Peer connection state: $state', _module);
 
-    // Also update our connection state based on peer connection state
     switch (state) {
       case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
         _updateConnectionState(WebRTCConnectionState.connected);
@@ -388,10 +380,10 @@ class WebRTCService {
     }
   }
 
-  /// Handle incoming track (remote stream)
+  /// Handle incoming track (remote stream) - viewer side
   void _handleTrack(RTCTrackEvent event) {
     AppLogger.info(
-      'Track event received: track.kind=${event.track.kind}, streams=${event.streams.length}',
+      'Track received: kind=${event.track.kind}, streams=${event.streams.length}',
       _module,
     );
 
@@ -401,32 +393,13 @@ class WebRTCService {
       _startMetricsCollection();
 
       AppLogger.info(
-        'Remote stream attached to renderer: streamId=${_remoteStream?.id}, tracks=${_remoteStream?.getTracks().length}',
+        'Remote stream attached: id=${_remoteStream?.id}',
         _module,
       );
-
-      // Log video track details
-      final videoTracks = _remoteStream?.getVideoTracks();
-      if (videoTracks != null && videoTracks.isNotEmpty) {
-        AppLogger.info(
-          'Video track: id=${videoTracks.first.id}, enabled=${videoTracks.first.enabled}',
-          _module,
-        );
-      } else {
-        AppLogger.warning('No video tracks in remote stream!', _module);
-      }
-    } else {
-      AppLogger.warning('Track event received but no streams!', _module);
     }
   }
 
-  /// Handle renegotiation needed
-  Future<void> _handleRenegotiationNeeded() async {
-    if (_isHost && _peerConnection != null) {
-      AppLogger.debug('Renegotiation needed', _module);
-      // Will be triggered when we need to send a new offer
-    }
-  }
+  // ==================== SIGNALING MESSAGE HANDLING ====================
 
   /// Handle incoming signaling message
   Future<void> _handleSignalingMessage(SignalingMessage message) async {
@@ -457,7 +430,9 @@ class WebRTCService {
         break;
 
       case SignalingType.disconnect:
-        if (message.senderId == _remoteDeviceId) {
+        if (_isHost) {
+          await _removeViewer(message.senderId);
+        } else if (message.senderId == _remoteDeviceId) {
           await stop();
         }
         break;
@@ -467,21 +442,22 @@ class WebRTCService {
     }
   }
 
-  /// Handle viewer joining (host side)
+  /// Handle viewer joining (host side) - NOW SUPPORTS MULTIPLE VIEWERS
   Future<void> _handleViewerJoin(String viewerId) async {
-    // If we're already connecting/connected to this viewer, ignore duplicate requests
-    if (_remoteDeviceId == viewerId &&
-        (_connectionState == WebRTCConnectionState.connecting ||
-            _connectionState == WebRTCConnectionState.connected ||
-            _connectionState == WebRTCConnectionState.ready)) {
+    // Check if this viewer is already connected
+    if (_viewerConnections.containsKey(viewerId)) {
       AppLogger.warning(
-        'Ignoring duplicate join request from $viewerId',
+        'Viewer $viewerId already connected, ignoring duplicate',
         _module,
       );
       return;
     }
 
-    _remoteDeviceId = viewerId;
+    AppLogger.info('New viewer joining: $viewerId', _module);
+
+    // Create a new peer connection for this viewer
+    final pc = await _createPeerConnectionForViewer(viewerId);
+    _viewerConnections[viewerId] = pc;
 
     // Send join response
     _signalingService.sendMessage(
@@ -492,41 +468,51 @@ class WebRTCService {
       ),
     );
 
-    // Create and send offer
-    await _createAndSendOffer(viewerId);
+    // Create and send offer to this specific viewer
+    await _createAndSendOfferToViewer(viewerId, pc);
 
-    AppLogger.info('Viewer joined: $viewerId', _module);
+    _notifyViewerCountChanged();
+    AppLogger.info(
+      'Viewer $viewerId joined (total: ${_viewerConnections.length})',
+      _module,
+    );
   }
 
-  /// Create and send SDP offer
-  Future<void> _createAndSendOffer(String targetId) async {
-    if (_peerConnection == null) return;
-
+  /// Create and send SDP offer to a specific viewer
+  Future<void> _createAndSendOfferToViewer(
+    String viewerId,
+    RTCPeerConnection pc,
+  ) async {
     try {
-      final offer = await _peerConnection!.createOffer({
-        'offerToReceiveVideo': true,
+      final offer = await pc.createOffer({
+        'offerToReceiveVideo': false,
         'offerToReceiveAudio': false,
       });
 
-      await _peerConnection!.setLocalDescription(offer);
+      await pc.setLocalDescription(offer);
 
       _signalingService.sendMessage(
         SignalingMessage.offer(
           senderId: _localDeviceId!,
-          targetId: targetId,
+          targetId: viewerId,
           sdp: offer.toMap(),
         ),
       );
 
-      AppLogger.info('Sent offer to: $targetId', _module);
+      AppLogger.info('Sent offer to viewer: $viewerId', _module);
     } catch (e, stack) {
-      AppLogger.error('Failed to create offer', e, stack, _module);
+      AppLogger.error(
+        'Failed to create offer for $viewerId',
+        e,
+        stack,
+        _module,
+      );
     }
   }
 
   /// Handle incoming offer (viewer side)
   Future<void> _handleOffer(SignalingMessage message) async {
-    if (_peerConnection == null) return;
+    if (_hostConnection == null) return;
 
     try {
       _remoteDeviceId = message.senderId;
@@ -536,11 +522,10 @@ class WebRTCService {
         message.payload['type'] as String,
       );
 
-      await _peerConnection!.setRemoteDescription(sdp);
+      await _hostConnection!.setRemoteDescription(sdp);
 
-      // Create and send answer
-      final answer = await _peerConnection!.createAnswer();
-      await _peerConnection!.setLocalDescription(answer);
+      final answer = await _hostConnection!.createAnswer();
+      await _hostConnection!.setLocalDescription(answer);
 
       _signalingService.sendMessage(
         SignalingMessage.answer(
@@ -550,15 +535,24 @@ class WebRTCService {
         ),
       );
 
-      AppLogger.info('Sent answer to: ${message.senderId}', _module);
+      AppLogger.info('Sent answer to host: ${message.senderId}', _module);
     } catch (e, stack) {
       AppLogger.error('Failed to handle offer', e, stack, _module);
     }
   }
 
-  /// Handle incoming answer (host side)
+  /// Handle incoming answer (host side) - NOW ROUTES TO CORRECT VIEWER
   Future<void> _handleAnswer(SignalingMessage message) async {
-    if (_peerConnection == null) return;
+    final viewerId = message.senderId;
+    final pc = _viewerConnections[viewerId];
+
+    if (pc == null) {
+      AppLogger.warning(
+        'Received answer from unknown viewer: $viewerId',
+        _module,
+      );
+      return;
+    }
 
     try {
       final sdp = RTCSessionDescription(
@@ -566,22 +560,31 @@ class WebRTCService {
         message.payload['type'] as String,
       );
 
-      await _peerConnection!.setRemoteDescription(sdp);
-
-      AppLogger.info(
-        'Remote description set from: ${message.senderId}',
+      await pc.setRemoteDescription(sdp);
+      AppLogger.info('Set remote description for viewer: $viewerId', _module);
+    } catch (e, stack) {
+      AppLogger.error(
+        'Failed to handle answer from $viewerId',
+        e,
+        stack,
         _module,
       );
-    } catch (e, stack) {
-      AppLogger.error('Failed to handle answer', e, stack, _module);
     }
   }
 
-  /// Handle incoming ICE candidate
+  /// Handle incoming ICE candidate - ROUTES TO CORRECT CONNECTION
   Future<void> _handleRemoteIceCandidate(SignalingMessage message) async {
-    if (_peerConnection == null) {
+    RTCPeerConnection? pc;
+
+    if (_isHost) {
+      pc = _viewerConnections[message.senderId];
+    } else {
+      pc = _hostConnection;
+    }
+
+    if (pc == null) {
       AppLogger.warning(
-        'Received ICE candidate but peer connection is null!',
+        'Received ICE candidate but no connection for: ${message.senderId}',
         _module,
       );
       return;
@@ -589,19 +592,9 @@ class WebRTCService {
 
     try {
       final candidateMap = message.payload as Map<String, dynamic>;
-      final candidateStr = candidateMap['candidate'] as String? ?? '';
-
-      // Parse candidate type for logging
-      String candidateType = 'unknown';
-      if (candidateStr.contains('typ host')) {
-        candidateType = 'host';
-      } else if (candidateStr.contains('typ srflx')) {
-        candidateType = 'srflx (STUN)';
-      } else if (candidateStr.contains('typ relay')) {
-        candidateType = 'relay (TURN)';
-      } else if (candidateStr.contains('typ prflx')) {
-        candidateType = 'prflx';
-      }
+      final candidateType = _parseCandidateType(
+        candidateMap['candidate'] as String? ?? '',
+      );
 
       final candidate = RTCIceCandidate(
         candidateMap['candidate'] as String?,
@@ -609,9 +602,9 @@ class WebRTCService {
         candidateMap['sdpMLineIndex'] as int?,
       );
 
-      await _peerConnection!.addCandidate(candidate);
+      await pc.addCandidate(candidate);
       AppLogger.info(
-        'Added remote ICE candidate: type=$candidateType, from=${message.senderId}',
+        'Added ICE candidate: type=$candidateType, from=${message.senderId}',
         _module,
       );
     } catch (e) {
@@ -619,7 +612,16 @@ class WebRTCService {
     }
   }
 
-  /// Update connection state
+  // ==================== UTILITY METHODS ====================
+
+  String _parseCandidateType(String candidateStr) {
+    if (candidateStr.contains('typ host')) return 'host';
+    if (candidateStr.contains('typ srflx')) return 'srflx (STUN)';
+    if (candidateStr.contains('typ relay')) return 'relay (TURN)';
+    if (candidateStr.contains('typ prflx')) return 'prflx';
+    return 'unknown';
+  }
+
   void _updateConnectionState(WebRTCConnectionState state) {
     _connectionState = state;
     if (!_connectionStateController.isClosed) {
@@ -627,7 +629,12 @@ class WebRTCService {
     }
   }
 
-  /// Start collecting streaming metrics
+  void _notifyViewerCountChanged() {
+    if (!_viewerCountController.isClosed) {
+      _viewerCountController.add(_viewerConnections.length);
+    }
+  }
+
   void _startMetricsCollection() {
     _metricsTimer?.cancel();
     _metricsTimer = Timer.periodic(const Duration(seconds: 2), (_) {
@@ -635,12 +642,19 @@ class WebRTCService {
     });
   }
 
-  /// Collect and emit streaming metrics
   Future<void> _collectMetrics() async {
-    if (_peerConnection == null) return;
+    // Get stats from first viewer connection (for host) or host connection (for viewer)
+    RTCPeerConnection? pc;
+    if (_isHost && _viewerConnections.isNotEmpty) {
+      pc = _viewerConnections.values.first;
+    } else if (!_isHost) {
+      pc = _hostConnection;
+    }
+
+    if (pc == null) return;
 
     try {
-      final stats = await _peerConnection!.getStats();
+      final stats = await pc.getStats();
 
       double fps = 0;
       int latency = 0;
@@ -686,33 +700,29 @@ class WebRTCService {
     }
   }
 
-  /// Change streaming quality
   Future<void> setQuality(StreamingQuality newQuality) async {
     if (_quality == newQuality) return;
 
     _quality = newQuality;
     AppLogger.info('Quality changed to: ${newQuality.displayName}', _module);
 
-    // Update bitrate for active video senders
-    if (_peerConnection != null) {
-      final senders = await _peerConnection!.getSenders();
+    // Update bitrate for all viewer connections
+    for (final pc in _viewerConnections.values) {
+      final senders = await pc.getSenders();
       for (final sender in senders) {
         if (sender.track?.kind == 'video') {
-          await _setVideoQuality(sender);
+          await _setVideoQualityOnSender(sender);
         }
       }
     }
   }
 
-  /// Set video quality parameters on the sender
-  Future<void> _setVideoQuality(RTCRtpSender sender) async {
+  Future<void> _setVideoQualityOnSender(RTCRtpSender sender) async {
     try {
       final parameters = sender.parameters;
       if (parameters.encodings != null && parameters.encodings!.isNotEmpty) {
         for (final encoding in parameters.encodings!) {
           encoding.maxBitrate = _quality.bitrate;
-          // Set a reasonable floor to prevent extreme quality drops
-          // encoding.minBitrate = (_quality.bitrate * 0.1).toInt();
         }
         await sender.setParameters(parameters);
         AppLogger.info('Set video bitrate to ${_quality.bitrate} bps', _module);
@@ -741,10 +751,16 @@ class WebRTCService {
       _remoteStream = null;
     }
 
-    // Close peer connection
-    if (_peerConnection != null) {
-      await _peerConnection!.close();
-      _peerConnection = null;
+    // Close all viewer connections (host side)
+    for (final pc in _viewerConnections.values) {
+      await pc.close();
+    }
+    _viewerConnections.clear();
+
+    // Close host connection (viewer side)
+    if (_hostConnection != null) {
+      await _hostConnection!.close();
+      _hostConnection = null;
     }
 
     localRenderer.srcObject = null;
@@ -773,11 +789,12 @@ class WebRTCService {
     await remoteRenderer.dispose();
     await _connectionStateController.close();
     await _metricsController.close();
+    await _viewerCountController.close();
     AppLogger.info('WebRTC service disposed', _module);
   }
 }
 
-/// WebRTC Connection states (named to avoid Flutter's ConnectionState)
+/// WebRTC Connection states
 enum WebRTCConnectionState {
   disconnected,
   connecting,

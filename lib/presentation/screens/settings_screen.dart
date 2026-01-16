@@ -79,25 +79,6 @@ class SettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: 32),
 
-          // Network Settings
-          _buildSectionHeader(theme, 'Network'),
-          const SizedBox(height: 12),
-          _buildSettingTile(
-            theme,
-            colorScheme,
-            icon: Icons.cloud_sync_rounded,
-            title: 'Force Relay Mode',
-            subtitle: 'Use for mobile hotspots (slower but more reliable)',
-            trailing: Switch.adaptive(
-              value: settings.forceRelayMode,
-              onChanged: (value) => settingsNotifier.setForceRelayMode(value),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildMobileHotspotTip(theme, colorScheme),
-
-          const SizedBox(height: 32),
-
           // Device Info
           _buildSectionHeader(theme, 'Device'),
           const SizedBox(height: 12),
@@ -137,55 +118,6 @@ class SettingsScreen extends ConsumerWidget {
                 applicationVersion: '1.0.0',
               );
             },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileHotspotTip(ThemeData theme, ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.warning.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.warning.withOpacity(0.3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppTheme.warning.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.wifi_tethering_rounded,
-              color: AppTheme.warning,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Mobile Hotspot Tip',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'If screen sharing doesn\'t work on a mobile hotspot, enable "Force Relay Mode" above. This routes the connection through a relay server.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withOpacity(0.7),
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),

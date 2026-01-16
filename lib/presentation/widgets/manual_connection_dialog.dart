@@ -4,7 +4,7 @@ import '../../data/models/models.dart';
 import '../../core/theme/app_theme.dart';
 
 /// Dialog for manually entering connection details
-/// Used on web platform where network discovery is not available
+/// Works on all platforms for connecting to shared screens via IP address
 class ManualConnectionDialog extends StatefulWidget {
   const ManualConnectionDialog({super.key});
 

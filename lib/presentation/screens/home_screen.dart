@@ -232,11 +232,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         .fadeIn(duration: 400.ms)
                         .slideY(begin: 0.1, end: 0),
 
-                  // Manual Connection Card (for web)
+                  // Manual Connection Card - show on web always, on other platforms as alternative
                   if (kIsWeb)
                     _buildManualConnectionCard(theme)
                         .animate()
                         .fadeIn(duration: 400.ms)
+                        .slideY(begin: 0.1, end: 0)
+                  else
+                    _buildManualConnectionSmallCard(theme)
+                        .animate()
+                        .fadeIn(duration: 400.ms, delay: 50.ms)
                         .slideY(begin: 0.1, end: 0),
 
                   const SizedBox(height: 32),
@@ -406,6 +411,66 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  /// Compact manual connection card for non-web platforms
+  Widget _buildManualConnectionSmallCard(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outline.withOpacity(0.2)),
+      ),
+      child: InkWell(
+        onTap: _showManualConnectionDialog,
+        borderRadius: BorderRadius.circular(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF06B6D4).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.add_link_rounded,
+                color: Color(0xFF06B6D4),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Connect Manually',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Enter IP address to connect to a shared screen',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: colorScheme.onSurface.withOpacity(0.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildShareCard(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -513,12 +578,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
         ),
         const Spacer(),
-        if (kIsWeb)
-          TextButton.icon(
-            onPressed: _showManualConnectionDialog,
-            icon: const Icon(Icons.add_rounded, size: 18),
-            label: const Text('Add'),
-          ),
+        // Manual connection button - available on all platforms
+        TextButton.icon(
+          onPressed: _showManualConnectionDialog,
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text('Add Manually'),
+        ),
       ],
     );
   }
