@@ -112,13 +112,27 @@ class WebRTCService {
   /// Get screen capture stream
   Future<MediaStream?> _getScreenStream() async {
     try {
-      // On Android, we MUST start a foreground service with mediaProjection type
-      // BEFORE requesting screen capture, otherwise it crashes on Android 14+.
+      // On Android 14+, we MUST request media projection permission BEFORE
+      // starting the foreground service with mediaProjection type.
+      // The native side handles requesting permission and starting the service.
       if (Platform.isAndroid) {
         try {
           const channel = MethodChannel('com.wifimirror/service');
           await channel.invokeMethod('startForegroundService');
           AppLogger.info('Started Android foreground service', _module);
+        } on PlatformException catch (e) {
+          // Handle permission denial from user
+          if (e.code == 'PERMISSION_DENIED') {
+            AppLogger.warning('User denied screen capture permission', _module);
+            rethrow; // Propagate so the UI can show appropriate message
+          }
+          AppLogger.error(
+            'Failed to start foreground service',
+            e,
+            null,
+            _module,
+          );
+          rethrow;
         } catch (e) {
           AppLogger.error(
             'Failed to start foreground service',
@@ -126,6 +140,7 @@ class WebRTCService {
             null,
             _module,
           );
+          rethrow;
         }
       }
 
