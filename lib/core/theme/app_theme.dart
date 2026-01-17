@@ -13,10 +13,10 @@ class AppTheme {
   static const Color _accentLight = Color(0xFF06B6D4);
   static const Color _accentDark = Color(0xFF22D3EE);
 
-  // Surface Colors - Dark Theme
-  static const Color _surfaceDark = Color(0xFF0F172A);
-  static const Color _surfaceContainerDark = Color(0xFF1E293B);
-  static const Color _surfaceVariantDark = Color(0xFF334155);
+  // Surface Colors - Dark Theme (Pure Black)
+  static const Color _surfaceDark = Color(0xFF1E1E1E);
+  static const Color _surfaceContainerDark = Color(0xFF0D0D0D);
+  static const Color _surfaceVariantDark = Color(0xFF1A1A1A);
 
   // Surface Colors - Light Theme
   static const Color _surfaceLight = Color(0xFFF8FAFC);

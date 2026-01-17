@@ -5,6 +5,7 @@ import '../presentation/screens/home_screen.dart';
 import '../presentation/screens/viewing_screen.dart';
 import '../presentation/screens/sharing_screen.dart';
 import '../presentation/screens/settings_screen.dart';
+import '../presentation/screens/docs_screen.dart';
 import '../data/models/models.dart';
 
 /// Route paths
@@ -14,6 +15,7 @@ class AppRoutes {
   static const String view = '/view';
   static const String share = '/share';
   static const String settings = '/settings';
+  static const String docs = '/docs';
 }
 
 /// GoRouter configuration provider
@@ -62,6 +64,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.settings,
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+
+      // Documentation screen (web only)
+      GoRoute(
+        path: AppRoutes.docs,
+        name: 'docs',
+        builder: (context, state) => const DocsScreen(),
       ),
     ],
 

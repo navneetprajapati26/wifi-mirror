@@ -92,9 +92,9 @@ class DownloadAppsDialog extends StatelessWidget {
                     iconColor: const Color(0xFF3DDC84),
                     description: 'For Android phones and tablets',
                     features: [
-                      'Screen sharing',
-                      'Auto discovery',
-                      'Low latency',
+                      // 'Screen sharing',
+                      // 'Auto discovery',
+                      // 'Low latency',
                     ],
                     downloadUrl:
                         'https://github.com/navneetprajapati26/wifi-mirror/releases/latest/download/wifi-mirror.apk',
@@ -112,9 +112,9 @@ class DownloadAppsDialog extends StatelessWidget {
                     iconColor: const Color(0xFF555555),
                     description: 'For MacBook and iMac',
                     features: [
-                      'Native performance',
-                      'Screen capture',
-                      'M1/M2 optimized',
+                      // 'Native performance',
+                      // 'Screen capture',
+                      // 'M1/M2 optimized',
                     ],
                     downloadUrl:
                         'https://github.com/navneetprajapati26/wifi-mirror/releases/latest/download/wifi-mirror.dmg',

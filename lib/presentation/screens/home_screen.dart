@@ -164,17 +164,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      // Web Platform Notice (responsive)
-                      if (kIsWeb) ...[
-                        // Quick Connect Card - shows when URL has connection params
-                        const QuickConnectCard(),
-
-                        _buildWebPlatformNotice(theme, isLargeScreen)
-                            .animate()
-                            .fadeIn(duration: 400.ms)
-                            .slideY(begin: 0.1, end: 0),
-                        SizedBox(height: isLargeScreen ? 32 : 20),
-                      ],
+                      // Web Platform: Quick Connect Card first (shows when URL has params)
+                      if (kIsWeb) ...const [QuickConnectCard()],
 
                       // Cards section - horizontal on large screens
                       if (isLargeScreen)
@@ -182,7 +173,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       else
                         _buildMobileCards(theme),
 
-                      SizedBox(height: isLargeScreen ? 48 : 32),
+                      SizedBox(height: isLargeScreen ? 32 : 24),
+
+                      // Web Platform Notice
+                      if (kIsWeb) ...[
+                        _buildWebPlatformNotice(theme, isLargeScreen)
+                            .animate()
+                            .fadeIn(duration: 400.ms)
+                            .slideY(begin: 0.1, end: 0),
+                        SizedBox(height: isLargeScreen ? 32 : 24),
+
+                        // Features List (Web only)
+                        _buildFeaturesSection(theme, isLargeScreen)
+                            .animate()
+                            .fadeIn(duration: 400.ms, delay: 100.ms)
+                            .slideY(begin: 0.1, end: 0),
+                        SizedBox(height: isLargeScreen ? 32 : 24),
+                      ],
 
                       // Available Screens Section
                       _buildAvailableScreensHeader(
@@ -1017,4 +1024,162 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ),
     );
   }
+
+  Widget _buildFeaturesSection(ThemeData theme, bool isLargeScreen) {
+    final colorScheme = theme.colorScheme;
+
+    final features = [
+      _FeatureItem(
+        icon: Icons.devices_rounded,
+        title: 'Multi-Platform',
+        description: 'Works on Android, iOS, macOS, Windows, Linux & Web',
+        color: const Color(0xFF7C3AED),
+      ),
+      _FeatureItem(
+        icon: Icons.people_rounded,
+        title: 'Multi-Viewer',
+        description: 'Share your screen to multiple viewers at once',
+        color: const Color(0xFF06B6D4),
+      ),
+      _FeatureItem(
+        icon: Icons.wifi_rounded,
+        title: 'Auto-Discovery',
+        description: 'Automatically find devices on your local network',
+        color: const Color(0xFF10B981),
+      ),
+      _FeatureItem(
+        icon: Icons.high_quality_rounded,
+        title: 'HD Quality',
+        description: 'Stream up to 1440p at 60fps on local network',
+        color: const Color(0xFFF59E0B),
+      ),
+      _FeatureItem(
+        icon: Icons.lock_rounded,
+        title: 'Local Only',
+        description: 'All traffic stays on your local WiFi network',
+        color: const Color(0xFFEF4444),
+      ),
+      _FeatureItem(
+        icon: Icons.flash_on_rounded,
+        title: 'Low Latency',
+        description: 'WebRTC peer-to-peer for minimal delay',
+        color: const Color(0xFF3B82F6),
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header with documentation link
+        Row(
+          children: [
+            Text(
+              'Features',
+              style:
+                  (isLargeScreen
+                          ? theme.textTheme.titleLarge
+                          : theme.textTheme.titleMedium)
+                      ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: () => context.push(AppRoutes.docs),
+              icon: const Icon(Icons.menu_book_rounded, size: 18),
+              label: const Text('Documentation'),
+            ),
+          ],
+        ),
+        SizedBox(height: isLargeScreen ? 20 : 16),
+
+        // Features grid
+        if (isLargeScreen)
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: features.map((feature) {
+              return SizedBox(
+                width: 280,
+                child: _buildFeatureCard(feature, theme, colorScheme, true),
+              );
+            }).toList(),
+          )
+        else
+          Column(
+            children: features.map((feature) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildFeatureCard(feature, theme, colorScheme, false),
+              );
+            }).toList(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildFeatureCard(
+    _FeatureItem feature,
+    ThemeData theme,
+    ColorScheme colorScheme,
+    bool isLargeScreen,
+  ) {
+    return Container(
+      padding: EdgeInsets.all(isLargeScreen ? 20 : 16),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: feature.color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              feature.icon,
+              color: feature.color,
+              size: isLargeScreen ? 24 : 20,
+            ),
+          ),
+          SizedBox(width: isLargeScreen ? 16 : 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  feature.title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  feature.description,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeatureItem {
+  final IconData icon;
+  final String title;
+  final String description;
+  final Color color;
+
+  _FeatureItem({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.color,
+  });
 }
