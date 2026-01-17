@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
-import 'presentation/screens/home_screen.dart';
 import 'providers/providers.dart';
+import 'providers/router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,22 +34,44 @@ class WifiMirrorApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appSettingsProvider);
     final initAsync = ref.watch(appInitializedProvider);
+    final router = ref.watch(routerProvider);
 
-    return MaterialApp(
-      title: 'WiFi Mirror',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      home: initAsync.when(
-        data: (initialized) {
-          if (initialized) {
-            return const HomeScreen();
-          }
-          return const _ErrorScreen();
-        },
-        loading: () => const _SplashScreen(),
-        error: (error, _) => _ErrorScreen(error: error.toString()),
+    return initAsync.when(
+      data: (initialized) {
+        if (initialized) {
+          return MaterialApp.router(
+            title: 'WiFi Mirror',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            routerConfig: router,
+          );
+        }
+        return MaterialApp(
+          title: 'WiFi Mirror',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          home: const _ErrorScreen(),
+        );
+      },
+      loading: () => MaterialApp(
+        title: 'WiFi Mirror',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+        home: const _SplashScreen(),
+      ),
+      error: (error, _) => MaterialApp(
+        title: 'WiFi Mirror',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+        home: _ErrorScreen(error: error.toString()),
       ),
     );
   }

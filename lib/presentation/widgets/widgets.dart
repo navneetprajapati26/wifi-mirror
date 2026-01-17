@@ -6,3 +6,4 @@ export 'manual_connection_dialog.dart';
 export 'web_instructions_dialog.dart';
 export 'download_apps_dialog.dart';
 export 'web_server_card.dart';
+export 'quick_connect_card.dart';

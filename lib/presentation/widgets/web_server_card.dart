@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/constants/app_constants.dart';
 import '../../data/services/services.dart';
 import '../../providers/providers.dart';
 
@@ -36,7 +37,7 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
 
     return Container(
       margin: EdgeInsets.symmetric(
-        horizontal: widget.isLargeScreen ? 0 : 20,
+        horizontal: widget.isLargeScreen ? 0 : 0,
         vertical: 8,
       ),
       decoration: BoxDecoration(
@@ -214,11 +215,21 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
     );
   }
 
+  /// Get the auto-connect URL with host parameter
+  String _getAutoConnectUrl(WebServerStatus status) {
+    if (status.ipAddress == null) return status.url ?? '';
+    // The default signaling port is service port + 1
+    final signalingPort = AppConstants.servicePort;
+    return '${status.url}/connect?host=${status.ipAddress}&port=$signalingPort';
+  }
+
   Widget _buildUrlSection(
     ThemeData theme,
     ColorScheme colorScheme,
     WebServerStatus status,
   ) {
+    final autoConnectUrl = _getAutoConnectUrl(status);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -244,15 +255,27 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
                 ),
               ),
               const SizedBox(width: 10),
-              Text(
-                'Shareable Link',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF10B981),
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Auto-Connect Link',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: const Color(0xFF10B981),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Opens app & connects automatically',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
-              _buildCopyButton(theme, status.url!),
+              _buildCopyButton(theme, autoConnectUrl),
             ],
           ),
           const SizedBox(height: 12),
@@ -263,9 +286,9 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
               color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
-              status.url!,
-              style: theme.textTheme.bodyMedium?.copyWith(
+            child: SelectableText(
+              autoConnectUrl,
+              style: theme.textTheme.bodySmall?.copyWith(
                 fontFamily: 'monospace',
                 fontWeight: FontWeight.w500,
                 color: colorScheme.onSurface,
@@ -273,23 +296,32 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(
-                Icons.info_outline,
-                size: 14,
-                color: colorScheme.onSurface.withOpacity(0.5),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'Open this link on any device connected to the same WiFi',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withOpacity(0.5),
+          // Info row
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.auto_awesome,
+                  size: 16,
+                  color: Color(0xFF10B981),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Share this link - they\'ll auto-connect to your screen!',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF059669),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

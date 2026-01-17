@@ -44,6 +44,9 @@ dependencies:
   
   # URL Launcher for opening download links
   url_launcher: ^6.2.5
+  
+  # Router for deep linking and navigation
+  go_router: ^14.6.2
 
 dev_dependencies:
   flutter_test:

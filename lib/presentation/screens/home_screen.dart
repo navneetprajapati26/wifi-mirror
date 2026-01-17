@@ -2,14 +2,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/responsive.dart';
 import '../../data/models/models.dart';
 import '../../providers/providers.dart';
+import '../../providers/router.dart';
 import '../widgets/widgets.dart';
-import 'sharing_screen.dart';
-import 'viewing_screen.dart';
-import 'settings_screen.dart';
 
 /// Main home screen with device discovery and sharing options
 class HomeScreen extends ConsumerStatefulWidget {
@@ -75,9 +74,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     try {
       await ref.read(screenSharingControllerProvider).startSharing();
       if (mounted) {
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const SharingScreen()));
+        context.push(AppRoutes.share);
       }
     } catch (e) {
       if (mounted) {
@@ -99,9 +96,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     try {
       await ref.read(screenSharingControllerProvider).connectToSession(device);
       if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => ViewingScreen(hostDevice: device)),
-        );
+        context.push(AppRoutes.view, extra: device);
       }
     } catch (e) {
       if (mounted) {
@@ -171,6 +166,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     delegate: SliverChildListDelegate([
                       // Web Platform Notice (responsive)
                       if (kIsWeb) ...[
+                        // Quick Connect Card - shows when URL has connection params
+                        const QuickConnectCard(),
+
                         _buildWebPlatformNotice(theme, isLargeScreen)
                             .animate()
                             .fadeIn(duration: 400.ms)
@@ -272,7 +270,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               child: Text(
                 'WEB',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: colorScheme.primary,
+                  color: colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
                 ),
@@ -293,9 +291,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _buildActionButton(
           icon: Icons.settings_rounded,
           onTap: () {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            context.push(AppRoutes.settings);
           },
           isLargeScreen: isLargeScreen,
         ),
