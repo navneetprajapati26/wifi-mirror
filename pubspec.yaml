@@ -1,11 +1,11 @@
-name: wifi_mirror
+name: WifiMirror
 description: "Cross-platform screen sharing app for local WiFi networks"
 publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.1
+  sdk: ^3.8.0
 
 dependencies:
   flutter:
@@ -59,7 +59,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/fonts/
+#    - assets/fonts/
     - assets/web_app/
     - assets/web_app/assets/
     - assets/web_app/assets/fonts/

@@ -246,11 +246,15 @@ class _SharingScreenState extends ConsumerState<SharingScreen> {
                       .scale(begin: const Offset(0.95, 0.95)),
             ),
 
+
+
             // Connection info, Stats and controls
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
+                  // Web Server Card (only on native platforms)
+                  if (!kIsWeb) const WebServerCard(isLargeScreen: false),
                   // Connection Info Card (for web viewers)
                   _buildConnectionInfoCard(theme, colorScheme)
                       .animate()
@@ -326,6 +330,7 @@ class _SharingScreenState extends ConsumerState<SharingScreen> {
                 ],
               ),
             ),
+
           ],
         ),
       ),

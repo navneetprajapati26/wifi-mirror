@@ -42,12 +42,13 @@ class _ViewingScreenState extends ConsumerState<ViewingScreen> {
   }
 
   /// Check if fullscreen button should be shown
-  /// Hidden on web/large screens since they're already in a large viewport
+  /// Always show on web (fullscreen is the primary immersive experience)
+  /// Hidden on very large native screens since they're already in a large viewport
   bool _shouldShowFullscreenButton(BuildContext context) {
-    if (kIsWeb && context.isDesktopOrLarger) {
-      return false; // Hide on web desktop
+    if (kIsWeb) {
+      return true; // Always show on web - it's the main way to go fullscreen
     }
-    return !context.isLargeDesktop; // Hide on very large screens
+    return !context.isLargeDesktop; // Hide on very large native screens
   }
 
   void _toggleFullscreen() async {
@@ -100,7 +101,9 @@ class _ViewingScreenState extends ConsumerState<ViewingScreen> {
     final webrtcService = ref.watch(webrtcServiceProvider);
     final connectionState = ref.watch(connectionStateProvider);
     final metricsAsync = ref.watch(streamingMetricsProvider);
-    final isLargeScreen = context.isDesktopOrLarger;
+    // For web: use fullscreen state to determine layout styling
+    // For native: use responsive breakpoints
+    final isLargeScreen = kIsWeb ? _isFullscreen : context.isDesktopOrLarger;
     final showFullscreenBtn = _shouldShowFullscreenButton(context);
 
     return Scaffold(
@@ -110,53 +113,42 @@ class _ViewingScreenState extends ConsumerState<ViewingScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Remote video - centered on large screens
+            // Remote video - full screen for web, responsive for native
             Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: isLargeScreen
-                      ? context.screenWidth * 0.9
-                      : double.infinity,
-                  maxHeight: isLargeScreen
-                      ? context.screenHeight * 0.85
-                      : double.infinity,
+                  // On web: always use full available space for consistent experience
+                  // On native: center content on large screens
+                  maxWidth: kIsWeb
+                      ? double.infinity
+                      : (isLargeScreen ? context.screenWidth * 0.9 : double.infinity),
+                  maxHeight: kIsWeb
+                      ? double.infinity
+                      : (isLargeScreen ? context.screenHeight * 0.85 : double.infinity),
                 ),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: ClipRRect(
-                    borderRadius: isLargeScreen
-                        ? BorderRadius.circular(16)
-                        : BorderRadius.zero,
-                    child: connectionState.when(
-                      data: (state) {
-                        if (state == WebRTCConnectionState.connected) {
-                          return Container(
-                            decoration: isLargeScreen
-                                ? BoxDecoration(
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.1),
-                                      width: 1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(16),
-                                  )
-                                : null,
-                            child: RTCVideoView(
-                              webrtcService.remoteRenderer,
-                              mirror: false,
-                              objectFit: RTCVideoViewObjectFit
-                                  .RTCVideoViewObjectFitContain,
-                            ).animate().fadeIn(duration: 500.ms),
-                          );
-                        }
-                        return _buildConnectingState(theme, isLargeScreen);
-                      },
-                      loading: () =>
-                          _buildConnectingState(theme, isLargeScreen),
-                      error: (error, _) =>
-                          _buildErrorState(theme, error, isLargeScreen),
-                    ),
-                  ),
-                ),
+                // On web: skip AspectRatio to fill screen (RTCVideoView handles aspect internally)
+                // On native: use AspectRatio for proper layout
+                child: kIsWeb
+                    ? _buildVideoContent(
+                        connectionState,
+                        webrtcService,
+                        theme,
+                        isLargeScreen,
+                      )
+                    : AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: ClipRRect(
+                          borderRadius: isLargeScreen
+                              ? BorderRadius.circular(16)
+                              : BorderRadius.zero,
+                          child: _buildVideoContent(
+                            connectionState,
+                            webrtcService,
+                            theme,
+                            isLargeScreen,
+                          ),
+                        ),
+                      ),
               ),
             ),
 
@@ -212,6 +204,44 @@ class _ViewingScreenState extends ConsumerState<ViewingScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Builds the video content widget with proper styling for web/native
+  Widget _buildVideoContent(
+    AsyncValue<WebRTCConnectionState> connectionState,
+    dynamic webrtcService,
+    ThemeData theme,
+    bool isLargeScreen,
+  ) {
+    return connectionState.when(
+      data: (state) {
+        if (state == WebRTCConnectionState.connected) {
+          return Container(
+            // Full size container for web, decorated for native large screens
+            width: kIsWeb ? double.infinity : null,
+            height: kIsWeb ? double.infinity : null,
+            decoration: (!kIsWeb && isLargeScreen)
+                ? BoxDecoration(
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.1),
+                      width: 1,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  )
+                : null,
+            child: RTCVideoView(
+              webrtcService.remoteRenderer,
+              mirror: false,
+              // Always use Contain to show full screen content without cropping
+              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+            ).animate().fadeIn(duration: 500.ms),
+          );
+        }
+        return _buildConnectingState(theme, isLargeScreen);
+      },
+      loading: () => _buildConnectingState(theme, isLargeScreen),
+      error: (error, _) => _buildErrorState(theme, error, isLargeScreen),
     );
   }
 
