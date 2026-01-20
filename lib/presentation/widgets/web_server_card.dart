@@ -41,39 +41,16 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
         vertical: 8,
       ),
       decoration: BoxDecoration(
-        gradient: status.isRunning
-            ? LinearGradient(
-                colors: [
-                  const Color(0xFF059669).withOpacity(0.15),
-                  const Color(0xFF10B981).withOpacity(0.08),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : LinearGradient(
-                colors: [
-                  colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                  colorScheme.surfaceContainerHigh.withOpacity(0.3),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+        color: status.isRunning
+            ? theme.colorScheme.primaryContainer.withOpacity(0.2)
+            : colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: status.isRunning
-              ? const Color(0xFF10B981).withOpacity(0.3)
-              : colorScheme.outline.withOpacity(0.1),
+              ? theme.colorScheme.primary
+              : colorScheme.outlineVariant,
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: status.isRunning
-                ? const Color(0xFF10B981).withOpacity(0.1)
-                : Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -112,27 +89,10 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            gradient: status.isRunning
-                ? const LinearGradient(
-                    colors: [Color(0xFF059669), Color(0xFF10B981)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+            color: status.isRunning
+                ? theme.colorScheme.primary
+                : theme.colorScheme.secondary,
             borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: status.isRunning
-                    ? const Color(0xFF10B981).withOpacity(0.4)
-                    : const Color(0xFF8B5CF6).withOpacity(0.4),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
           child: Icon(
             status.isRunning ? Icons.wifi_tethering : Icons.public,
@@ -173,22 +133,10 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
       duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        gradient: status.isRunning
-            ? null
-            : const LinearGradient(
-                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-              ),
-        color: status.isRunning ? theme.colorScheme.errorContainer : null,
+        color: status.isRunning
+            ? theme.colorScheme.error
+            : theme.colorScheme.primary,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: !status.isRunning
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
       ),
       child: _isLoading
           ? SizedBox(
@@ -206,9 +154,7 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
           : Text(
               status.isRunning ? 'Stop' : 'Start',
               style: theme.textTheme.labelMedium?.copyWith(
-                color: status.isRunning
-                    ? theme.colorScheme.onErrorContainer
-                    : Colors.white,
+                color: theme.colorScheme.onPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -233,9 +179,11 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surface.withOpacity(0.8),
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,12 +193,12 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.15),
+                  color: theme.colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.link,
-                  color: Color(0xFF10B981),
+                  color: theme.colorScheme.onPrimaryContainer,
                   size: 16,
                 ),
               ),
@@ -260,14 +208,14 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Auto-Connect Link',
+                      'Quick-Connect Link',
                       style: theme.textTheme.labelMedium?.copyWith(
-                        color: const Color(0xFF10B981),
+                        color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
-                      'Opens app & connects automatically',
+                      'Opens app & connects quickly',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colorScheme.onSurface.withOpacity(0.5),
                       ),
@@ -300,22 +248,22 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.08),
+              color: theme.colorScheme.secondaryContainer,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.auto_awesome,
                   size: 16,
-                  color: Color(0xFF10B981),
+                  color: theme.colorScheme.onSecondaryContainer,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Share this link - they\'ll auto-connect to your screen!',
+                    'Share this link - they\'ll quick-connect to your screen!',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF059669),
+                      color: theme.colorScheme.onSecondaryContainer,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -337,19 +285,21 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFF10B981).withOpacity(0.1),
+            color: theme.colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+            border: Border.all(
+              color: theme.colorScheme.onPrimary.withOpacity(0.2),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.copy, size: 14, color: Color(0xFF10B981)),
+              Icon(Icons.copy, size: 14, color: theme.colorScheme.onPrimary),
               const SizedBox(width: 6),
               Text(
                 'Copy',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: const Color(0xFF10B981),
+                  color: theme.colorScheme.onPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -387,20 +337,20 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.1),
+        color: AppTheme.warning.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.warning.withOpacity(0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber, color: Colors.orange, size: 18),
+          const Icon(Icons.warning_amber, color: AppTheme.warning, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               error,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.orange.shade700,
+                color: AppTheme.warning,
               ),
             ),
           ),
@@ -454,7 +404,7 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
             Text('Link copied to clipboard!'),
           ],
         ),
-        backgroundColor: const Color(0xFF10B981),
+        backgroundColor: AppTheme.success,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),

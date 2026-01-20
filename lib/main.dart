@@ -91,23 +91,13 @@ class _SplashScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
+                color: theme.colorScheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF7C3AED).withOpacity(0.4),
-                    blurRadius: 40,
-                    offset: const Offset(0, 16),
-                  ),
-                ],
+                // boxShadow: removed for flat design
               ),
-              child: const Icon(
-                Icons.cast_rounded,
-                size: 64,
-                color: Colors.white,
-              ),
+              child: Image.asset('assets/img/logo.png', width: 80, height: 80),
             ),
             const SizedBox(height: 32),
             Text(

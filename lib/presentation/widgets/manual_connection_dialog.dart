@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../data/models/models.dart';
-import '../../core/theme/app_theme.dart';
 
 /// Dialog for manually entering connection details
 /// Works on all platforms for connecting to shared screens via IP address
@@ -104,12 +103,12 @@ class _ManualConnectionDialogState extends State<ManualConnectionDialog> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
+                      color: theme.colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.link_rounded,
-                      color: Colors.white,
+                      color: theme.colorScheme.onPrimaryContainer,
                       size: 24,
                     ),
                   ),

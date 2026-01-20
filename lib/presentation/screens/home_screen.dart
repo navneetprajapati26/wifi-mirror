@@ -239,22 +239,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       title: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(isLargeScreen ? 10 : 8),
+            padding: EdgeInsets.all(isLargeScreen ? 6 : 4),
             decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
+              color: Theme.of(context).colorScheme.primary,
               borderRadius: BorderRadius.circular(isLargeScreen ? 14 : 12),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF7C3AED).withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              // border: Border.all(
+              //   // color: Theme.of(
+              //   //   context,
+              //   // ).colorScheme.outlineVariant.withOpacity(0.5),
+              // ),
             ),
-            child: Icon(
-              Icons.cast_rounded,
-              color: Colors.white,
-              size: isLargeScreen ? 28 : 24,
+            child: Image.asset(
+              'assets/img/logo.png',
+              width: isLargeScreen ? 40 : 36,
+              height: isLargeScreen ? 40 : 36,
             ),
           ),
           SizedBox(width: isLargeScreen ? 16 : 12),
@@ -591,16 +589,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Container(
       padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF06B6D4).withOpacity(0.15),
-            const Color(0xFF0EA5E9).withOpacity(0.08),
-          ],
-        ),
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(isLargeScreen ? 28 : 24),
-        border: Border.all(color: const Color(0xFF06B6D4).withOpacity(0.25)),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -610,15 +603,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               Container(
                 padding: EdgeInsets.all(isLargeScreen ? 18 : 16),
                 decoration: BoxDecoration(
-                  gradient: AppTheme.accentGradient,
+                  color: theme.colorScheme.secondaryContainer,
                   borderRadius: BorderRadius.circular(isLargeScreen ? 18 : 16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF06B6D4).withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
                 ),
                 child: Icon(
                   Icons.link_rounded,
@@ -685,12 +671,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF06B6D4).withOpacity(0.15),
+                    color: colorScheme.secondaryContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.add_link_rounded,
-                    color: Color(0xFF06B6D4),
+                    color: colorScheme.onSecondaryContainer,
                     size: 20,
                   ),
                 ),
@@ -733,49 +719,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Container(
       padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF7C3AED).withOpacity(0.15),
-            const Color(0xFF4F46E5).withOpacity(0.08),
-          ],
-        ),
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(isLargeScreen ? 28 : 24),
-        border: Border.all(color: const Color(0xFF7C3AED).withOpacity(0.25)),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              AnimatedBuilder(
-                animation: _pulseController,
-                builder: (context, child) {
-                  return Container(
-                    padding: EdgeInsets.all(isLargeScreen ? 18 : 16),
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      borderRadius: BorderRadius.circular(
-                        isLargeScreen ? 18 : 16,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(
-                            0xFF7C3AED,
-                          ).withOpacity(0.3 + (_pulseController.value * 0.2)),
-                          blurRadius: 20 + (_pulseController.value * 10),
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.screen_share_rounded,
-                      color: Colors.white,
-                      size: isLargeScreen ? 36 : 32,
-                    ),
-                  );
-                },
+              Container(
+                padding: EdgeInsets.all(isLargeScreen ? 18 : 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  borderRadius: BorderRadius.circular(isLargeScreen ? 18 : 16),
+                ),
+                child: Icon(
+                  Icons.screen_share_rounded,
+                  color: theme.colorScheme.onPrimary,
+                  size: isLargeScreen ? 36 : 32,
+                ),
               ),
               SizedBox(width: isLargeScreen ? 20 : 16),
               Expanded(
@@ -1033,13 +998,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         icon: Icons.devices_rounded,
         title: 'Multi-Platform',
         description: 'Works on Android, iOS, macOS, Windows, Linux & Web',
-        color: const Color(0xFF7C3AED),
+        color: const Color(0xFFF5A623),
       ),
       _FeatureItem(
         icon: Icons.people_rounded,
         title: 'Multi-Viewer',
         description: 'Share your screen to multiple viewers at once',
-        color: const Color(0xFF06B6D4),
+        color: const Color(0xFFFFC107),
       ),
       _FeatureItem(
         icon: Icons.wifi_rounded,
@@ -1051,7 +1016,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         icon: Icons.high_quality_rounded,
         title: 'HD Quality',
         description: 'Stream up to 1440p at 60fps on local network',
-        color: const Color(0xFFF59E0B),
+        color: const Color(0xFFE5A100),
       ),
       _FeatureItem(
         icon: Icons.lock_rounded,

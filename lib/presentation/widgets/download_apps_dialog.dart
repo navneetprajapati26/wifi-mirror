@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../core/theme/app_theme.dart';
 
 /// Dialog showing download options for Android and MacBook apps
 class DownloadAppsDialog extends StatelessWidget {
@@ -37,19 +36,12 @@ class DownloadAppsDialog extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          gradient: AppTheme.primaryGradient,
+                          color: theme.colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF7C3AED).withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.download_rounded,
-                          color: Colors.white,
+                          color: theme.colorScheme.onPrimaryContainer,
                           size: 28,
                         ),
                       ),

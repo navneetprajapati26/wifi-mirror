@@ -177,13 +177,9 @@ class _SharingScreenState extends ConsumerState<SharingScreen> {
                           decoration: BoxDecoration(
                             color: Colors.black,
                             borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.success.withOpacity(0.2),
-                                blurRadius: 40,
-                                spreadRadius: 5,
-                              ),
-                            ],
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant,
+                            ),
                           ),
                           clipBehavior: Clip.antiAlias,
                           child: Stack(
@@ -205,7 +201,7 @@ class _SharingScreenState extends ConsumerState<SharingScreen> {
                                     vertical: 8,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.success.withOpacity(0.9),
+                                    color: AppTheme.success,
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Row(
@@ -245,8 +241,6 @@ class _SharingScreenState extends ConsumerState<SharingScreen> {
                       .fadeIn(duration: 500.ms, delay: 200.ms)
                       .scale(begin: const Offset(0.95, 0.95)),
             ),
-
-
 
             // Connection info, Stats and controls
             Padding(
@@ -330,7 +324,6 @@ class _SharingScreenState extends ConsumerState<SharingScreen> {
                 ],
               ),
             ),
-
           ],
         ),
       ),
@@ -341,16 +334,11 @@ class _SharingScreenState extends ConsumerState<SharingScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF06B6D4).withOpacity(0.15),
-            const Color(0xFF0EA5E9).withOpacity(0.1),
-          ],
-        ),
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF06B6D4).withOpacity(0.3)),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,12 +348,12 @@ class _SharingScreenState extends ConsumerState<SharingScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF06B6D4).withOpacity(0.2),
+                  color: theme.colorScheme.secondaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.wifi_tethering_rounded,
-                  color: Color(0xFF06B6D4),
+                  color: theme.colorScheme.onSecondaryContainer,
                   size: 20,
                 ),
               ),

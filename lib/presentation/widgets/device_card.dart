@@ -28,16 +28,9 @@ class DeviceCard extends StatelessWidget {
         border: Border.all(
           color: device.isSharing
               ? AppTheme.success.withOpacity(0.5)
-              : colorScheme.surfaceContainerHigh,
+              : colorScheme.outlineVariant,
           width: device.isSharing ? 2 : 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -53,11 +46,8 @@ class DeviceCard extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    gradient: device.isSharing
-                        ? AppTheme.successGradient
-                        : null,
                     color: device.isSharing
-                        ? null
+                        ? AppTheme.success
                         : colorScheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(14),
                   ),

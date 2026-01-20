@@ -90,26 +90,12 @@ class _QuickConnectCardState extends ConsumerState<QuickConnectCard> {
     return Container(
           margin: const EdgeInsets.only(left: 0, right: 0, bottom: 16),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                const Color(0xFF7C3AED).withOpacity(0.2),
-                const Color(0xFF4F46E5).withOpacity(0.1),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: theme.colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: const Color(0xFF7C3AED).withOpacity(0.4),
-              width: 2,
+              color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+              width: 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF7C3AED).withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
           child: Material(
             color: Colors.transparent,
@@ -124,23 +110,12 @@ class _QuickConnectCardState extends ConsumerState<QuickConnectCard> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          color: theme.colorScheme.secondaryContainer,
                           borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF7C3AED).withOpacity(0.4),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.link_rounded,
-                          color: Colors.white,
+                          color: theme.colorScheme.onSecondaryContainer,
                           size: 24,
                         ),
                       ),
@@ -187,10 +162,12 @@ class _QuickConnectCardState extends ConsumerState<QuickConnectCard> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: colorScheme.surface.withOpacity(0.8),
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: const Color(0xFF7C3AED).withOpacity(0.2),
+                        color: theme.colorScheme.outlineVariant.withOpacity(
+                          0.3,
+                        ),
                       ),
                     ),
                     child: Column(
@@ -201,12 +178,12 @@ class _QuickConnectCardState extends ConsumerState<QuickConnectCard> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF7C3AED).withOpacity(0.1),
+                                color: theme.colorScheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.computer,
-                                color: Color(0xFF7C3AED),
+                                color: theme.colorScheme.onPrimaryContainer,
                                 size: 20,
                               ),
                             ),
@@ -229,7 +206,7 @@ class _QuickConnectCardState extends ConsumerState<QuickConnectCard> {
                                         ?.copyWith(
                                           fontFamily: 'monospace',
                                           fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF7C3AED),
+                                          color: theme.colorScheme.primary,
                                         ),
                                   ),
                                 ],
@@ -248,12 +225,12 @@ class _QuickConnectCardState extends ConsumerState<QuickConnectCard> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF4F46E5).withOpacity(0.1),
+                                color: theme.colorScheme.secondaryContainer,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.settings_ethernet,
-                                color: Color(0xFF4F46E5),
+                                color: theme.colorScheme.onSecondaryContainer,
                                 size: 20,
                               ),
                             ),
@@ -276,7 +253,7 @@ class _QuickConnectCardState extends ConsumerState<QuickConnectCard> {
                                         ?.copyWith(
                                           fontFamily: 'monospace',
                                           fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF4F46E5),
+                                          color: theme.colorScheme.secondary,
                                         ),
                                   ),
                                 ],
@@ -331,14 +308,13 @@ class _QuickConnectCardState extends ConsumerState<QuickConnectCard> {
                           ? null
                           : () => _connect(_hostIp!, port),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7C3AED),
-                        foregroundColor: Colors.white,
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        elevation: 4,
-                        shadowColor: const Color(0xFF7C3AED).withOpacity(0.4),
+                        elevation: 0,
                       ),
                       child: _isConnecting
                           ? const SizedBox(
@@ -378,7 +354,7 @@ class _QuickConnectCardState extends ConsumerState<QuickConnectCard> {
         .shimmer(
           delay: 500.ms,
           duration: 1500.ms,
-          color: const Color(0xFF7C3AED).withOpacity(0.1),
+          color: theme.colorScheme.primary.withOpacity(0.1),
         );
   }
 

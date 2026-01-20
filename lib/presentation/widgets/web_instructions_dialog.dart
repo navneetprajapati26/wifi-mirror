@@ -31,12 +31,7 @@ class WebInstructionsDialog extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppTheme.warning.withOpacity(0.2),
-                                AppTheme.warning.withOpacity(0.1),
-                              ],
-                            ),
+                            color: AppTheme.warning.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(

@@ -75,15 +75,7 @@ class _StatusIndicatorState extends State<StatusIndicator>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: widget.status.color.withOpacity(_animation.value),
-                boxShadow: [
-                  BoxShadow(
-                    color: widget.status.color.withOpacity(
-                      0.4 * _animation.value,
-                    ),
-                    blurRadius: widget.size,
-                    spreadRadius: widget.size * 0.25,
-                  ),
-                ],
+                // boxShadow removed for flat design
               ),
             );
           },
