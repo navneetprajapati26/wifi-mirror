@@ -48148,7 +48148,7 @@ else{p=g.k3
 p=s.aZ(A.a3(153,p.p()>>>16&255,p.p()>>>8&255,p.p()&255))}o=t.p
 p=A.bu(A.b([d,B.bS,A.ca(A.br(A.b([r,B.du,A.as("Get the native app for best experience",i,i,i,i,p,i,i)],o),B.N,B.m,B.o),1,i),A.n2(i,i,B.pH,i,i,new A.aao(a),i,i,i)],o),B.q,B.m,B.o,0)
 r=t.s
-d=this.Q9(a,h,"Download APK","For Android phones and tablets","https://github.com/navneetprajapati26/wifi-mirror/releases/latest/download/wifi-mirror.apk",A.b([],r),B.Is,B.Fv,"Android")
+d=this.Q9(a,h,"Download APK","For Android phones and tablets","https://play.google.com/store/apps/details?id=com.asyncapps.wifimirror",A.b([],r),B.Is,B.Fv,"Android")
 r=this.Q9(a,h,"Download DMG","For MacBook and iMac","https://github.com/navneetprajapati26/wifi-mirror/releases/latest/download/wifi-mirror.dmg",A.b([],r),B.II,B.Fi,"macOS")
 n=A.aKi(B.Ji,B.Z8,new A.aap(this))
 m=g.R8
