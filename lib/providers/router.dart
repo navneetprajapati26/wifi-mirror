@@ -65,7 +65,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.music,
         name: 'music',
-        builder: (context, state) => const MusicScreen(),
+        builder: (context, state) {
+          final host = state.uri.queryParameters['host'];
+          return MusicScreen(initialHost: host);
+        },
       ),
 
       // Settings screen

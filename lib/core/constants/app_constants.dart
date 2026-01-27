@@ -13,6 +13,7 @@ class AppConstants {
 
   // WebRTC Signaling
   static const int signalingPort = 50124;
+  static const int musicPort = 50126;
 
   // Streaming Quality Presets for Local Network
   static const Map<String, StreamingQuality> qualityPresets = {

@@ -1,12 +1,12 @@
 import 'dart:async';
 
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../data/models/music_sync_state.dart';
 import '../data/services/services.dart';
 import '../core/utils/logger.dart';
+import '../core/constants/app_constants.dart';
 
 // --- Providers ---
 
@@ -18,12 +18,13 @@ final audioPlayerProvider = Provider.autoDispose((ref) {
   return player;
 });
 
-final musicControllerProvider = StateNotifierProvider<MusicController, MusicSessionState>((ref) {
-  return MusicController(
-    ref.watch(musicServerServiceProvider),
-    ref.watch(audioPlayerProvider),
-  );
-});
+final musicControllerProvider =
+    StateNotifierProvider<MusicController, MusicSessionState>((ref) {
+      return MusicController(
+        ref.watch(musicServerServiceProvider),
+        ref.watch(audioPlayerProvider),
+      );
+    });
 
 // --- State Models ---
 
@@ -69,24 +70,23 @@ class MusicSessionState {
 
 class MusicController extends StateNotifier<MusicSessionState> {
   static const String _tag = 'MusicController';
-  
+
   final MusicServerService _serverService;
   final AudioPlayer _player;
-  
+
   WebSocketChannel? _clientChannel;
   StreamSubscription? _playerSubscription;
   StreamSubscription? _serverStateSubscription;
-  
+
   bool _isRemoteUpdate = false;
   Timer? _syncTimer;
 
-  MusicController(this._serverService, this._player) 
-      : super(MusicSessionState(
-          syncState: MusicSyncState(
-            type: MusicSyncType.pause, 
-            timestamp: 0,
-          ),
-        )) {
+  MusicController(this._serverService, this._player)
+    : super(
+        MusicSessionState(
+          syncState: MusicSyncState(type: MusicSyncType.pause, timestamp: 0),
+        ),
+      ) {
     _initPlayerListeners();
   }
 
@@ -95,18 +95,19 @@ class MusicController extends StateNotifier<MusicSessionState> {
     _player.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.buffering) {
         if (!state.playing) {
-           // update buffering state
+          // update buffering state
         }
       }
-      
+
       if (_isRemoteUpdate) return;
-      
+
       final isPlaying = state.playing;
       final processingState = state.processingState;
-      
-      if (processingState == ProcessingState.ready || processingState == ProcessingState.buffering) {
+
+      if (processingState == ProcessingState.ready ||
+          processingState == ProcessingState.buffering) {
         if (isPlaying != state.playing) {
-             // Handle local play/pause toggle if needed, usually handled by play/pause methods
+          // Handle local play/pause toggle if needed, usually handled by play/pause methods
         }
       }
     });
@@ -115,10 +116,10 @@ class MusicController extends StateNotifier<MusicSessionState> {
     // But since UI calls controller methods, we can broadcast there.
     // However, we should also watch for completion.
     _player.processingStateStream.listen((state) {
-        if (state == ProcessingState.completed) {
-            pause(); // Reset
-            seek(Duration.zero);
-        }
+      if (state == ProcessingState.completed) {
+        pause(); // Reset
+        seek(Duration.zero);
+      }
     });
   }
 
@@ -127,10 +128,10 @@ class MusicController extends StateNotifier<MusicSessionState> {
   Future<void> startHosting(String filePath) async {
     try {
       await _serverService.startServer(filePath);
-      
+
       // Load file locally
       await _player.setFilePath(filePath);
-      
+
       // Start server state listener
       _serverStateSubscription = _serverService.syncStateStream.listen((state) {
         _applySyncState(state);
@@ -142,10 +143,9 @@ class MusicController extends StateNotifier<MusicSessionState> {
         currentTrackName: _serverService.fileName,
         shareUrl: _serverService.musicUrl,
       );
-      
+
       // Start periodic sync to keep time aligned
       _startSyncTimer();
-      
     } catch (e) {
       AppLogger.error('Failed to start hosting', e, null, _tag);
       stopSession();
@@ -154,50 +154,67 @@ class MusicController extends StateNotifier<MusicSessionState> {
 
   // --- Client Actions ---
 
-  Future<void> joinSession(String hostUrl) async {
+  Future<void> joinSession(String input) async {
     try {
-      // url input might be http://IP:PORT/filename
-      // Derive WS URL
-      final uri = Uri.parse(hostUrl);
-      final wsUrl = 'ws://${uri.host}:${uri.port}/ws';
-      
+      final port = AppConstants.musicPort;
+      String hostIp = input;
+
+      // If user pasted a full URL (e.g. from the web app address bar), extract the IP
+      if (input.startsWith('http') || input.startsWith('ws')) {
+        final uri = Uri.parse(input);
+        hostIp = uri.host;
+      }
+
+      final wsUrl = 'ws://$hostIp:$port/ws';
+
       AppLogger.info('Connecting to WS: $wsUrl', _tag);
-      
+
       _clientChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
-      
+
       state = state.copyWith(
         role: MusicRole.listener,
         isConnected: true,
-        shareUrl: hostUrl,
+        shareUrl: hostIp, // Just show IP so they can tell others
       );
 
       // Listen to incoming messages
-      _clientChannel!.stream.listen((message) {
-        try {
-          final syncState = MusicSyncState.fromJsonString(message);
-          
-          if (syncState.type == MusicSyncType.file_info) {
-             state = state.copyWith(currentTrackName: syncState.fileName);
-             // Verify we are playing correct file
-             if (_player.audioSource == null) {
-                _player.setUrl(hostUrl);
-             }
-          } else {
-             _applySyncState(syncState);
+      _clientChannel!.stream.listen(
+        (message) {
+          try {
+            final syncState = MusicSyncState.fromJsonString(message);
+
+            if (syncState.type == MusicSyncType.file_info) {
+              state = state.copyWith(currentTrackName: syncState.fileName);
+              // Construct audio URL
+              final audioUrl = 'http://$hostIp:$port/${syncState.fileName}';
+
+              // Verify we are playing correct file
+              // Note: just_audio might not allow checking current src easily against this URL string
+              // But we can reset if needed.
+              if (_player.audioSource == null) {
+                AppLogger.info('Setting audio source: $audioUrl', _tag);
+                _player.setUrl(audioUrl).then((_) {
+                  // Attempt to sync if we have state
+                  _applySyncState(state.syncState);
+                });
+              } else {
+                // Check if we should switch? For now assume valid.
+              }
+            } else {
+              _applySyncState(syncState);
+            }
+          } catch (e) {
+            AppLogger.error('Client Parse Error', e, null, _tag);
           }
-        } catch (e) {
-          AppLogger.error('Client Parse Error', e, null, _tag);
-        }
-      }, onError: (e) {
-         AppLogger.error('WS Error', e, null, _tag);
-         stopSession();
-      }, onDone: () {
-         stopSession();
-      });
-      
-      // Set audio source
-      await _player.setUrl(hostUrl);
-      
+        },
+        onError: (e) {
+          AppLogger.error('WS Error', e, null, _tag);
+          stopSession();
+        },
+        onDone: () {
+          stopSession();
+        },
+      );
     } catch (e) {
       AppLogger.error('Failed to join session', e, null, _tag);
       stopSession();
@@ -256,10 +273,25 @@ class MusicController extends StateNotifier<MusicSessionState> {
     state = state.copyWith(syncState: syncState);
 
     try {
-      if (syncState.type == MusicSyncType.seek || syncState.type == MusicSyncType.sync) {
-        // Calculate drift?
-        // Simple implementation: just seek
-        await _player.seek(syncState.position);
+      // Calculate target time with drift compensation
+      int targetMs = syncState.position.inMilliseconds;
+
+      if (syncState.isPlaying) {
+        final drift =
+            DateTime.now().millisecondsSinceEpoch - syncState.timestamp;
+        // Cap drift to avoid wild jumps from old messages
+        if (drift > 0 && drift < 2000) {
+          targetMs += drift;
+        }
+      }
+
+      final currentMs = _player.position.inMilliseconds;
+      final diff = (targetMs - currentMs).abs();
+
+      // Determine if we need to seek
+      // If diff is large (> 250ms), or if it's an explicit Seek command
+      if (syncState.type == MusicSyncType.seek || diff > 250) {
+        await _player.seek(Duration(milliseconds: targetMs));
       }
 
       if (syncState.isPlaying) {
@@ -268,6 +300,8 @@ class MusicController extends StateNotifier<MusicSessionState> {
         if (_player.playing) _player.pause();
       }
     } finally {
+      // Small delay to allow player state to settle before listening to local events again
+      await Future.delayed(const Duration(milliseconds: 100));
       _isRemoteUpdate = false;
     }
   }
@@ -290,18 +324,20 @@ class MusicController extends StateNotifier<MusicSessionState> {
   void stopSession() async {
     _syncTimer?.cancel();
     _serverStateSubscription?.cancel();
-    
+
     if (state.role == MusicRole.host) {
       await _serverService.stopServer();
     } else {
       _clientChannel?.sink.close();
       _clientChannel = null;
     }
-    
+
     await _player.stop();
-    state = MusicSessionState(syncState: MusicSyncState(type: MusicSyncType.pause, timestamp: 0));
+    state = MusicSessionState(
+      syncState: MusicSyncState(type: MusicSyncType.pause, timestamp: 0),
+    );
   }
-  
+
   @override
   void dispose() {
     _syncTimer?.cancel();

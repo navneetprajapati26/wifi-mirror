@@ -35,10 +35,12 @@ assets/assets/web_app/flutter_service_worker.js
 assets/assets/web_app/favicon.png
 assets/assets/web_app/icons/favicon.ico
 assets/assets/web_app/icons/apple-touch-icon.png
+assets/assets/web_app/icons/icon-192.png
 assets/assets/web_app/icons/Icon-maskable-192.png
 assets/assets/web_app/icons/icon-192-maskable.png
 assets/assets/web_app/icons/icon-512-maskable.png
 assets/assets/web_app/icons/Icon-maskable-512.png
+assets/assets/web_app/icons/icon-512.png
 assets/assets/web_app/manifest.json
 assets/assets/web_app/web_app_manifest.txt
 assets/assets/web_app/assets/NOTICES

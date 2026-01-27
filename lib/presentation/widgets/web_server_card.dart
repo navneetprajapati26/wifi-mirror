@@ -12,8 +12,17 @@ import '../../providers/providers.dart';
 /// Allows starting/stopping the local web server to share the app
 class WebServerCard extends ConsumerStatefulWidget {
   final bool isLargeScreen;
+  final String Function(WebServerStatus)? linkGenerator;
+  final String? linkTitle;
+  final String? linkSubtitle;
 
-  const WebServerCard({super.key, this.isLargeScreen = false});
+  const WebServerCard({
+    super.key,
+    this.isLargeScreen = false,
+    this.linkGenerator,
+    this.linkTitle,
+    this.linkSubtitle,
+  });
 
   @override
   ConsumerState<WebServerCard> createState() => _WebServerCardState();
@@ -163,6 +172,10 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
 
   /// Get the auto-connect URL with host parameter
   String _getAutoConnectUrl(WebServerStatus status) {
+    if (widget.linkGenerator != null) {
+      return widget.linkGenerator!(status);
+    }
+
     if (status.ipAddress == null) return status.url ?? '';
     // The default signaling port is service port + 1
     final signalingPort = AppConstants.servicePort;
@@ -182,7 +195,7 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
         color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       child: Column(
@@ -208,16 +221,16 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Quick-Connect Link',
+                      widget.linkTitle ?? 'Quick-Connect Link',
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
-                      'Opens app & connects quickly',
+                      widget.linkSubtitle ?? 'Opens app & connects quickly',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurface.withOpacity(0.5),
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -288,7 +301,7 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
             color: theme.colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: theme.colorScheme.onPrimary.withOpacity(0.2),
+              color: theme.colorScheme.onPrimary.withValues(alpha: 0.2),
             ),
           ),
           child: Row(
@@ -314,9 +327,9 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.error.withOpacity(0.1),
+        color: AppTheme.error.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -337,9 +350,9 @@ class _WebServerCardState extends ConsumerState<WebServerCard> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.warning.withOpacity(0.1),
+        color: AppTheme.warning.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.warning.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.warning.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
