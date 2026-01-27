@@ -438,11 +438,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           ],
         ),
-        // Web Server Card (only on native platforms)
-        if (!kIsWeb) ...[
-          const SizedBox(height: 24),
-          const WebServerCard(isLargeScreen: true),
-        ],
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+             Expanded(
+               child: _buildMusicCard(theme, true)
+                   .animate()
+                   .fadeIn(duration: 400.ms, delay: 100.ms)
+                   .slideX(begin: -0.1, end: 0),
+             ),
+             const SizedBox(width: 24),
+             if (!kIsWeb)
+               const Expanded(child: WebServerCard(isLargeScreen: true))
+             else
+               const Spacer(),
+          ],
+        ),
       ],
     );
   }
@@ -464,6 +476,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             theme,
             false,
           ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+        
+        if (!kIsWeb) const SizedBox(height: 16),
+
+        // Music Card
+        _buildMusicCard(theme, false)
+             .animate()
+             .fadeIn(duration: 400.ms, delay: 50.ms)
+             .slideY(begin: 0.1, end: 0),
 
         // Manual Connection Card
         if (kIsWeb)
@@ -474,7 +494,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         else
           _buildManualConnectionSmallCard(theme)
               .animate()
-              .fadeIn(duration: 400.ms, delay: 50.ms)
+              .fadeIn(duration: 400.ms, delay: 100.ms)
               .slideY(begin: 0.1, end: 0),
 
         // Web Server Card (only on native platforms)
@@ -860,6 +880,78 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             onPressed: _isStartingShare ? null : _startSharing,
             isLoading: _isStartingShare,
             width: double.infinity,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMusicCard(ThemeData theme, bool isLargeScreen) {
+    final padding = isLargeScreen ? 28.0 : 24.0;
+
+    return Container(
+      padding: EdgeInsets.all(padding),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(isLargeScreen ? 28 : 24),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(isLargeScreen ? 18 : 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.tertiary,
+                  borderRadius: BorderRadius.circular(isLargeScreen ? 18 : 16),
+                ),
+                child: Icon(
+                  Icons.music_note_rounded,
+                  color: theme.colorScheme.onTertiary,
+                  size: isLargeScreen ? 36 : 32,
+                ),
+              ),
+              SizedBox(width: isLargeScreen ? 20 : 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Music Party',
+                      style:
+                          (isLargeScreen
+                                  ? theme.textTheme.headlineSmall
+                                  : theme.textTheme.titleLarge)
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: isLargeScreen ? 6 : 4),
+                    Text(
+                      'Listen to music together in sync',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isLargeScreen ? 28 : 24),
+          GradientButton(
+            text: 'Open Music Party',
+            icon: Icons.headphones_rounded,
+            onPressed: () => context.push(AppRoutes.music),
+            width: double.infinity,
+            gradient: LinearGradient(colors: [
+              theme.colorScheme.tertiary,
+              theme.colorScheme.tertiaryContainer,
+            ]),
           ),
         ],
       ),
