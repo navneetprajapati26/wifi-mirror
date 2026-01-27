@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../presentation/screens/home_screen.dart';
 import '../presentation/screens/viewing_screen.dart';
 import '../presentation/screens/sharing_screen.dart';
+import '../presentation/screens/music_screen.dart';
 import '../presentation/screens/settings_screen.dart';
 import '../presentation/screens/docs_screen.dart';
 import '../data/models/models.dart';
@@ -14,6 +15,7 @@ class AppRoutes {
   static const String connect = '/connect';
   static const String view = '/view';
   static const String share = '/share';
+  static const String music = '/music';
   static const String settings = '/settings';
   static const String docs = '/docs';
 }
@@ -57,6 +59,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.share,
         name: 'share',
         builder: (context, state) => const SharingScreen(),
+      ),
+
+      // Music screen
+      GoRoute(
+        path: AppRoutes.music,
+        name: 'music',
+        builder: (context, state) => const MusicScreen(),
       ),
 
       // Settings screen
